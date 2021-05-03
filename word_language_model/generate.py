@@ -16,9 +16,9 @@ import sys
 parser = argparse.ArgumentParser(description='PyTorch OMCS Language Model')
 
 # Model parameters.
-parser.add_argument('--data', type=str, default='../../../data/commonsense',
+parser.add_argument('--data', type=str, default='data/commonsense',
                     help='location of the data corpus')
-parser.add_argument('--checkpoint', type=str, default='../../../models/model_40perc.pt',
+parser.add_argument('--checkpoint', type=str, default='models/model_40perc.pt',
                     help='model checkpoint to use')
 parser.add_argument('--outf', type=str, default='generated.txt',
                     help='output file for generated text')
@@ -87,7 +87,6 @@ with open(args.outf, 'w') as outf:
             i += 1
             word = corpus.dictionary.idx2word[input]
             outf.write(word + ('\n' if i % 20 == 19 else ' '))
-            print(input)
             output, hidden = model(input, hidden)
         word_weights = output.squeeze().div(args.temperature).exp().cpu()
         word_idx = torch.multinomial(word_weights, 1)[0]
