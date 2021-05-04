@@ -60,7 +60,7 @@ if not is_transformer_model:
     hidden = model.init_hidden(1)
 
 # My addition:
-# if input is given, convert list of input words to list of corresponing indexes
+# if input is given, convert list of input words to list of corresponding indexes
 if args.input is not None:
     input_words = args.input.split()
     input_idxs = []
@@ -70,10 +70,12 @@ if args.input is not None:
         # if word is not in the vocabulary, exit the program and inform user
         except KeyError:
             sys.exit(f"'{word}' is not in the vocabulary. Please enter another word as input.")
+        # convert index to a tensor so it can be easily used as input. Then index is added to a list
         else:
             idx = torch.tensor(idx)
             idx_tensor = torch.reshape(idx, (1, 1))
             input_idxs.append(idx_tensor)
+# if no input is given, still randomly produce the first word
 else:
     input_idxs = [torch.randint(ntokens, (1, 1), dtype=torch.long).to(device)]
     #print(corpus.dictionary.idx2word[input])
@@ -83,18 +85,22 @@ with open(args.outf, 'w') as outf:
     with torch.no_grad():  # no tracking history
         # My Addition:
         i = -1
+        # loop over the input words
         for input in input_idxs:
             i += 1
+            # write input word to file
             word = corpus.dictionary.idx2word[input]
             outf.write(word + ('\n' if i % 20 == 19 else ' '))
+            # give input word to hidden layer, output is not used (except in the last loop)
             output, hidden = model(input, hidden)
+        # give last output prediction as input for the next prediction
         word_weights = output.squeeze().div(args.temperature).exp().cpu()
         word_idx = torch.multinomial(word_weights, 1)[0]
-        # print("word_idx: ", word_idx)
         input.fill_(word_idx)
+        # write predicted word to file
         word = corpus.dictionary.idx2word[word_idx]
         outf.write(word + ('\n' if i % 20 == 19 else ' '))
-
+        # continue predicting words
         for i in range(len(input_idxs), args.words-1):
             if is_transformer_model:
                 output = model(input, False)
@@ -106,10 +112,8 @@ with open(args.outf, 'w') as outf:
                 output, hidden = model(input, hidden)
                 word_weights = output.squeeze().div(args.temperature).exp().cpu()
                 word_idx = torch.multinomial(word_weights, 1)[0]
-                #print("word_idx: ", word_idx)
                 input.fill_(word_idx)
-                #print("input: ", input)
-                #print("input.shape: ", input.shape)
+
 
             word = corpus.dictionary.idx2word[word_idx]
 
